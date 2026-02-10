@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atribuição de Papéis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+      margin: 0;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .top, .lists {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .box {
+      flex: 1 1 100%;
+      max-width: 100%;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    textarea {
+      width: 100%;
+      height: 140px;
+      font-family: monospace;
+    }
+
+    button {
+      margin-top: 8px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      background: #007bff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    li {
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-radius: 4px;
+      background: #f0f0f0;
+      cursor: pointer;
+    }
+
+    li.selected { background: #ffe58a; }
+    li.used {
+      background: #d3d3d3;
+      text-decoration: line-through;
+      cursor: not-allowed;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+    }
+
+    th { background: #eee; }
+
+    @media(min-width: 600px) {
+      .box { flex: 1 1 280px; } /* lado a lado em ecrãs maiores */
+    }
+  </style>
+</head>
+<body>
+
+<h1>Atribuição de Papéis</h1>
+
+<div class="top">
+  <div class="box">
+    <h3>Alunos</h3>
+    <textarea id="txtAlunos" placeholder="Um nome por linha"></textarea>
+    <button id="btnAlunos">Carregar alunos</button>
+  </div>
+
+  <div class="box">
+    <h3>Papéis</h3>
+    <textarea id="txtPapeis" placeholder="Um papel por linha"></textarea>
+    <button id="btnPapeis">Carregar papéis</button>
+  </div>
+</div>
+
+<div style="margin-top: 10px;">
+  <button id="btnSortear">Sortear Todos</button>
+  <button id="btnReset">Reset</button>
+</div>
+
+<div class="lists">
+  <div class="box">
+    <h4>Lista de alunos</h4>
+    <ul id="listaAlunos"></ul>
+  </div>
+
+  <div class="box">
+    <h4>Lista de papéis</h4>
+    <ul id="listaPapeis"></ul>
+  </div>
+</div>
+
+<h3>Pares atribuídos</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Aluno</th>
+      <th>Papel</th>
+    </tr>
+  </thead>
+  <tbody id="tabelaPares"></tbody>
+</table>
+
+<script>
+  const txtAlunos = document.getElementById('txtAlunos');
+  const txtPapeis = document.getElementById('txtPapeis');
+  const listaAlunos = document.getElementById('listaAlunos');
+  const listaPapeis = document.getElementById('listaPapeis');
+  const tabelaPares = document.getElementById('tabelaPares');
+
+  let alunos = [];
+  let papeis = [];
+  let alunoSelecionado = null;
+
+  document.getElementById('btnAlunos').onclick = () => {
+    alunos = txtAlunos.value.split('\n')
+      .map(l => ({ nome: l.trim(), usado: false }))
+      .filter(a => a.nome);
+    alunoSelecionado = null;
+    renderAlunos();
+  };
+
+  document.getElementById('btnPapeis').onclick = () => {
+    papeis = txtPapeis.value.split('\n')
+      .map(l => ({ texto: l.trim(), usado: false }))
+      .filter(p => p.texto);
+    renderPapeis();
+  };
+
+  document.getElementById('btnReset').onclick = () => {
+    alunos = [];
+    papeis = [];
+    alunoSelecionado = null;
+    txtAlunos.value = '';
+    txtPapeis.value = '';
+    listaAlunos.innerHTML = '';
+    listaPapeis.innerHTML = '';
+    tabelaPares.innerHTML = '';
+  };
+
+  function renderAlunos() {
+    listaAlunos.innerHTML = '';
+    alunos.forEach((a, i) => {
+      const li = document.createElement('li');
+      li.textContent = a.nome;
+      if (a.usado) li.classList.add('used');
+      if (i === alunoSelecionado) li.classList.add('selected');
+      li.onclick = () => {
+        if (a.usado) return;
+        alunoSelecionado = i;
+        renderAlunos();
+      };
+      listaAlunos.appendChild(li);
+    });
+  }
+
+  function renderPapeis() {
+    listaPapeis.innerHTML = '';
+    papeis.forEach((p, i) => {
+      const li = document.createElement('li');
+      li.textContent = p.texto;
+      if (p.usado) li.classList.add('used');
+      li.onclick = () => {
+        if (p.usado || alunoSelecionado === null) return;
+        atribuirPar(alunoSelecionado, i);
+      };
+      listaPapeis.appendChild(li);
+    });
+  }
+
+  function atribuirPar(idxAluno, idxPapel) {
+    const a = alunos[idxAluno];
+    const p = papeis[idxPapel];
+    a.usado = true;
+    p.usado = true;
+
+    const tr = document.createElement('tr');
+    const tdA = document.createElement('td');
+    const tdP = document.createElement('td');
+    tdA.textContent = a.nome;
+    tdP.textContent = p.texto;
+    tr.appendChild(tdA);
+    tr.appendChild(tdP);
+    tabelaPares.appendChild(tr);
+
+    alunoSelecionado = null;
+    renderAlunos();
+    renderPapeis();
+  }
+
+  document.getElementById('btnSortear').onclick = () => {
+    const max = Math.min(alunos.length, papeis.length);
+    let indicesAlunos = [...Array(alunos.length).keys()].sort(() => Math.random() - 0.5);
+    let indicesPapeis = [...Array(papeis.length).keys()].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < max; i++) {
+      atribuirPar(indicesAlunos[i], indicesPapeis[i]);
+    }
+  };
+</script>
+
+</body>
+</html>
